@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { getThreatLog, getThreatCount } from "./security.js";
 import { getAuditLog, detectAnomalies } from './api/api-key-manager.js';
 import { pb } from '/usr/lib/sfs-assistant-dev/pocketbase.js';
-import { decryptField } from './api/sentinel-tracking.js';
+// decryptField supprimé — données minimales uniquement, conformité RGPD
 
 const AGENTS = [
   {
@@ -77,15 +77,8 @@ function VisiteursTab({ lang, agent }) {
     setLoading(true);
     pb.collection("visiteurs_sentinel")
       .getList(1, 50, { sort: "-created", signal: controller.signal })
-      .then(async (res) => {
-        const items = await Promise.all(res.items.map(async (v) => {
-          const ip = v.ip_chiffree ? await decryptField(v.ip_chiffree).catch(() => null) : null;
-          const geo = v.localisation_chiffree ? await decryptField(v.localisation_chiffree).catch(() => null) : null;
-          const fp = v.empreinte_chiffree ? await decryptField(v.empreinte_chiffree).catch(() => null) : null;
-          const nav = v.navigation_chiffree ? await decryptField(v.navigation_chiffree).catch(() => null) : null;
-          return { ...v, ip_dec: ip, geo_dec: geo, fp_dec: fp, nav_dec: nav };
-        }));
-        setVisiteurs(items);
+      .then((res) => {
+        setVisiteurs(res.items);
         setLoading(false);
       })
       .catch((e) => { if (!e?.isAbort) setLoading(false); });
@@ -118,107 +111,41 @@ function VisiteursTab({ lang, agent }) {
       {visiteurs.map((v, i) => {
         const date = v.created ? new Date(v.created).toLocaleString("fr-FR") : "?";
         const isOpen = expanded === v.id;
-        const geo = v.geo_dec;
-        const fp = v.fp_dec;
-        const nav = v.nav_dec;
-        const ipVal = v.ip_dec?.ip || "?";
 
         return (
           <div key={v.id} style={{ marginBottom: "8px", border: `1px solid ${isOpen ? agent.color + "44" : agent.color + "18"}`, borderRadius: "2px", overflow: "hidden", transition: "border-color 0.15s" }}>
 
-            {/* En-tête visiteur — cliquable pour déplier */}
             <div
               onClick={() => setExpanded(isOpen ? null : v.id)}
               style={{ padding: "8px 10px", background: isOpen ? `${agent.color}10` : `${agent.color}06`, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px", flexWrap: "wrap" }}>
-                  <span style={{ ...mono, fontSize: "9px", color: agent.color, fontWeight: "900" }}>
-                    #{visiteurs.length - i}
-                  </span>
-                  <span style={{ ...mono, fontSize: "9px", color: "#00eeff" }}>
-                    {ipVal}
-                  </span>
-                  <span style={{ ...mono, fontSize: "8px", color: "rgba(255,255,255,0.5)" }}>
-                    {geo ? `${geo.ville}, ${geo.pays}` : (v.pays_brut || "?")}
-                  </span>
+                  <span style={{ ...mono, fontSize: "9px", color: agent.color, fontWeight: "900" }}>#{visiteurs.length - i}</span>
+                  <span style={{ ...mono, fontSize: "8px", color: "rgba(255,255,255,0.6)" }}>{v.pays_brut || "?"}</span>
                   {v.device_type && <DeviceBadge type={v.device_type} color={agent.color} />}
+                  <span style={{ ...mono, fontSize: "8px", color: "rgba(255,255,255,0.35)" }}>{v.page_visitee || "/"}</span>
                 </div>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <span style={{ ...mono, fontSize: "7px", color: "rgba(255,255,255,0.2)" }}>{date}</span>
-                  {v.langue_brut && v.langue_brut !== "?" && (
-                    <span style={{ ...mono, fontSize: "7px", color: "rgba(255,255,255,0.2)" }}>🌐 {v.langue_brut}</span>
-                  )}
-                  {v.referent_brut && v.referent_brut !== "direct" && (
-                    <span style={{ ...mono, fontSize: "7px", color: "#ffd700aa" }}>↩ {v.referent_brut.slice(0, 40)}</span>
-                  )}
+                  {v.langue_brut && v.langue_brut !== "?" && <span style={{ ...mono, fontSize: "7px", color: "rgba(255,255,255,0.2)" }}>🌐 {v.langue_brut}</span>}
+                  {v.referent_brut && v.referent_brut !== "direct" && <span style={{ ...mono, fontSize: "7px", color: "#ffd700aa" }}>↩ {v.referent_brut}</span>}
                 </div>
               </div>
               <span style={{ ...mono, fontSize: "9px", color: `${agent.color}66`, marginLeft: "8px" }}>{isOpen ? "▲" : "▼"}</span>
             </div>
 
-            {/* Détails dépliables */}
             {isOpen && (
               <div style={{ padding: "10px 12px", background: "rgba(0,0,0,0.4)", borderTop: `1px solid ${agent.color}18` }}>
-
-                {/* Réseau */}
-                <div style={{ marginBottom: "8px" }}>
-                  <div style={{ ...mono, fontSize: "7px", color: agent.color, letterSpacing: "0.2em", marginBottom: "5px", opacity: 0.6 }}>
-                    {lang === "en" ? "NETWORK" : "RÉSEAU"}
-                  </div>
-                  <DataRow label="IP" value={ipVal} color="#00eeff" mono={mono} />
-                  <DataRow label="FAI/Org" value={geo?.org} color="rgba(255,255,255,0.5)" mono={mono} />
-                  <DataRow label="Timezone" value={geo?.timezone} color="rgba(255,255,255,0.4)" mono={mono} />
-                  <DataRow label="Coords" value={geo?.lat && geo?.lon ? `${geo.lat.toFixed(3)}, ${geo.lon.toFixed(3)}` : null} color="rgba(255,255,255,0.35)" mono={mono} />
+                <DataRow label="Pays" value={v.pays_brut} color="rgba(255,255,255,0.5)" mono={mono} />
+                <DataRow label="Appareil" value={v.device_type} color={agent.color} mono={mono} />
+                <DataRow label="Langue" value={v.langue_brut} color="rgba(255,255,255,0.4)" mono={mono} />
+                <DataRow label="Page" value={v.page_visitee || "/"} color="rgba(255,255,255,0.4)" mono={mono} />
+                <DataRow label="Référent" value={v.referent_brut !== "direct" ? v.referent_brut : null} color="#ffd700" mono={mono} />
+                <DataRow label="ID anonyme" value={v.ip_hash ? v.ip_hash.slice(0, 12) + "…" : null} color="rgba(255,255,255,0.25)" mono={mono} />
+                <div style={{ ...mono, fontSize: "7px", color: "rgba(255,255,255,0.15)", marginTop: "8px", lineHeight: 1.5 }}>
+                  ⚠ IP complète non stockée — identifiant anonyme mensuel uniquement (RGPD)
                 </div>
-
-                {/* Navigation */}
-                {nav && (
-                  <div style={{ marginBottom: "8px" }}>
-                    <div style={{ ...mono, fontSize: "7px", color: agent.color, letterSpacing: "0.2em", marginBottom: "5px", opacity: 0.6 }}>
-                      {lang === "en" ? "NAVIGATION" : "NAVIGATION"}
-                    </div>
-                    <DataRow label="Page" value={nav.page} color="rgba(255,255,255,0.5)" mono={mono} />
-                    <DataRow label="Référent" value={nav.referrer !== "direct" ? nav.referrer?.slice(0, 80) : null} color="#ffd700" mono={mono} />
-                    <DataRow label="Entrée" value={nav.entryTime ? new Date(nav.entryTime).toLocaleTimeString("fr-FR") : null} color="rgba(255,255,255,0.3)" mono={mono} />
-                    {nav.queryParams && <DataRow label="Params" value={nav.queryParams} color="rgba(255,100,100,0.6)" mono={mono} />}
-                  </div>
-                )}
-
-                {/* Appareil & écran */}
-                {fp && (
-                  <div style={{ marginBottom: "8px" }}>
-                    <div style={{ ...mono, fontSize: "7px", color: agent.color, letterSpacing: "0.2em", marginBottom: "5px", opacity: 0.6 }}>
-                      {lang === "en" ? "DEVICE" : "APPAREIL"}
-                    </div>
-                    <DataRow label="Type" value={fp.deviceType} color={agent.color} mono={mono} />
-                    <DataRow label="OS/UA" value={fp.platform} color="rgba(255,255,255,0.4)" mono={mono} />
-                    <DataRow label="Écran" value={`${fp.screenWidth}×${fp.screenHeight} (${fp.screenDepth}bit)`} color="rgba(255,255,255,0.4)" mono={mono} />
-                    <DataRow label="Fenêtre" value={`${fp.windowWidth}×${fp.windowHeight}`} color="rgba(255,255,255,0.35)" mono={mono} />
-                    <DataRow label="Ratio px" value={fp.pixelRatio ? `×${fp.pixelRatio}` : null} color="rgba(255,255,255,0.3)" mono={mono} />
-                    <DataRow label="CPU" value={fp.hardwareConcurrency ? `${fp.hardwareConcurrency} cœurs` : null} color="rgba(255,255,255,0.3)" mono={mono} />
-                    <DataRow label="RAM" value={fp.deviceMemory ? `${fp.deviceMemory} GB` : null} color="rgba(255,255,255,0.3)" mono={mono} />
-                    <DataRow label="Touch" value={fp.maxTouchPoints > 0 ? `${fp.maxTouchPoints} pts` : null} color="rgba(255,255,255,0.3)" mono={mono} />
-                    <DataRow label="Orientation" value={fp.orientation} color="rgba(255,255,255,0.25)" mono={mono} />
-                    <DataRow label="Langue" value={fp.language} color="rgba(255,255,255,0.35)" mono={mono} />
-                    <DataRow label="Langues" value={fp.languages} color="rgba(255,255,255,0.25)" mono={mono} />
-                    <DataRow label="TZ locale" value={fp.timezone} color="rgba(255,255,255,0.3)" mono={mono} />
-                    <DataRow label="Cookies" value={fp.cookiesEnabled ? "Oui" : "Non"} color="rgba(255,255,255,0.3)" mono={mono} />
-                    <DataRow label="DNT" value={fp.doNotTrack} color="rgba(255,255,255,0.25)" mono={mono} />
-                    <DataRow label="Vendor" value={fp.vendor} color="rgba(255,255,255,0.25)" mono={mono} />
-                  </div>
-                )}
-
-                {/* User Agent complet */}
-                <div>
-                  <div style={{ ...mono, fontSize: "7px", color: agent.color, letterSpacing: "0.2em", marginBottom: "4px", opacity: 0.6 }}>
-                    USER AGENT
-                  </div>
-                  <div style={{ ...mono, fontSize: "7px", color: "rgba(255,255,255,0.2)", wordBreak: "break-all", lineHeight: 1.5 }}>
-                    {(v.user_agent || "").slice(0, 300)}
-                  </div>
-                </div>
-
               </div>
             )}
           </div>
@@ -404,4 +331,3 @@ export default function Sentinel({ lang = "fr" }) {
     </>
   );
 }
-
