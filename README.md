@@ -24,6 +24,24 @@ Aucune clé de chiffrement n’est présente dans ce dépôt. À l’exécution,
 
 L’application hôte doit imposer l’authentification et l’autorisation avant d’exposer les visiteurs. Avant de collecter une adresse IP, une localisation approximative, des caractéristiques d’appareil ou des données de navigation, informez clairement les personnes, recueillez le consentement requis, limitez la conservation et prévoyez les procédures d’accès et de suppression conformément au RGPD et aux règles locales.
 
+## RGPD et protection des données
+
+Sentinel applique désormais la protection de la vie privée par défaut : `trackVisitor()` ne collecte rien tant qu’un consentement explicite n’a pas été enregistré. Utilisez `setTrackingConsent(true)` après l’action positive de votre bandeau de consentement, et `setTrackingConsent(false)` pour retirer ce choix. Le bouton de refus doit être aussi visible et simple que le bouton d’acceptation.
+
+Cette mesure technique ne remplace pas vos obligations. Avant la mise en production, l’intégrateur doit :
+
+- définir la finalité, la base légale, la durée de conservation et les destinataires ;
+- informer les visiteurs des données collectées : IP, localisation approximative, appareil, navigateur, navigation et référent ;
+- documenter les appels à `api.ipify.org` et `ipapi.co`, leurs sous-traitants et les transferts éventuels hors UE ;
+- afficher une politique de confidentialité et recueillir le consentement requis avant tout appel ;
+- permettre le retrait du consentement, l’accès, la rectification, l’effacement et la limitation ;
+- sécuriser PocketBase avec authentification, rôles, règles d’accès, chiffrement côté serveur et journaux d’audit ;
+- limiter les champs et la durée de conservation, puis supprimer ou anonymiser automatiquement les anciennes données ;
+- protéger la clé AES dans un backend ou un gestionnaire de secrets. Une variable injectée dans le navigateur reste techniquement visible par le visiteur ;
+- vérifier si une analyse d’impact (AIPD/DPIA), un registre des traitements ou un accord de sous-traitance est nécessaire.
+
+Ne déployez pas le suivi public avant validation de ces points par le responsable du traitement ou votre conseil juridique. Le dépôt fournit des garde-fous techniques, pas une certification automatique de conformité.
+
 ## Intégration
 
 Importez les composants dans votre application React, adaptez l’import PocketBase et fournissez les modules référencés par `Sentinel.jsx` (`security.js` et `api/api-key-manager.js`). Le module de suivi attend une collection PocketBase nommée `visiteurs_sentinel`.
