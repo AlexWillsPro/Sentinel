@@ -1,6 +1,10 @@
 # Sentinel
 
-Sentinel est un panneau de sécurité open source, inspiré de l’esthétique cyberpunk, pour les applications React. Il combine une patrouille visuelle en temps réel, des compteurs de menaces et une vue des visiteurs réservée aux administrateurs.
+<p align="center"><img src="sentinel-logo.svg" alt="Sentinel — Open Security" width="900" /></p>
+
+<p align="center"><strong>Open security, community built.</strong><br/>A cyberpunk-inspired security panel for React applications.</p>
+
+Sentinel combine une patrouille visuelle en temps réel, des compteurs de menaces et une vue des visiteurs réservée aux administrateurs.
 
 ## Introduction
 
@@ -12,7 +16,7 @@ Sentinel donne une présence claire et compréhensible à la sécurité d’une 
 - Indicateurs de menaces fournis par l’application hôte.
 - Télémétrie visiteur chiffrée avec AES-GCM.
 - Vue PocketBase des visiteurs réservée aux utilisateurs autorisés.
-- Composant React librement extensible par la communauté.
+- Composant React extensible par la communauté.
 
 ## Configuration et sécurité
 
