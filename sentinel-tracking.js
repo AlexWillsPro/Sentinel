@@ -119,10 +119,24 @@ function getNavigationInfo() {
 }
 
 // ── Point d'entrée principal — appelé une fois par session ──────────────────
+const CONSENT_STORAGE_KEY = "sentinel_tracking_consent";
+
+export function hasTrackingConsent() {
+  try { return globalThis.localStorage?.getItem(CONSENT_STORAGE_KEY) === "granted"; } catch { return false; }
+}
+
+export function setTrackingConsent(granted) {
+  try {
+    if (granted) globalThis.localStorage?.setItem(CONSENT_STORAGE_KEY, "granted");
+    else globalThis.localStorage?.removeItem(CONSENT_STORAGE_KEY);
+  } catch {}
+}
+
 let _tracked = false;
 
 export async function trackVisitor() {
-  if (_tracked) return;
+  // Privacy by default: never collect without explicit, prior consent.
+  if (!hasTrackingConsent() || _tracked) return;
   _tracked = true;
 
   try {
